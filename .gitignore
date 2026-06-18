@@ -32,6 +32,9 @@ yarn-error.log*
 # vitest
 /coverage
 
+# typescript incremental build info
+*.tsbuildinfo
+
 # editors
 .vscode/
 .idea/
