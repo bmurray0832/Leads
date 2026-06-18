@@ -1,0 +1,161 @@
+// Leads CRM — Phase 1 Prisma schema
+// Stack: Next.js + Prisma + Railway Postgres, Auth0 for login.
+// Place at prisma/schema.prisma. Run: npx prisma migrate dev --name init
+//
+// Status/Priority are enums (no spaces allowed in enum values) — map to the
+// display labels in the app, e.g. MEETING_SCHEDULED -> "Meeting Scheduled".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Railway Postgres connection string
+}
+
+// ---------- Enums ----------
+
+enum LeadStatus {
+  NEW
+  ATTEMPTED
+  CONTACTED
+  MEETING_SCHEDULED
+  MET
+  CUSTOMER
+  NO_SHOW
+  LOST
+  NOT_QUALIFIED
+  BAD_LEAD
+}
+
+enum Priority {
+  NONE
+  HOT
+  WARM
+  COLD
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL_SENT       // also written by the manual "Emailed on" quick-log
+  EMAIL_RECEIVED   // reserved for the deferred Outlook integration
+  STATUS_CHANGE
+  MEETING
+  TASK
+  PAYMENT          // written when Stripe marks a lead a Customer
+}
+
+// ---------- Models ----------
+
+model User {
+  id        String   @id @default(cuid())
+  auth0Sub  String   @unique // Auth0 user id ("sub")
+  email     String?
+  name      String?
+  role      String   @default("owner")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads      Lead[]
+  activities Activity[]
+  tasks      Task[]
+}
+
+model Lead {
+  // Meta lead id (e.g. "l:1178272301158667") — natural primary key + dedupe key.
+  id          String      @id
+  createdTime DateTime? // Meta created_time
+
+  // contact
+  name     String?
+  email    String?
+  phone    String?
+  jobTitle String?
+  company  String?
+
+  // attribution (from Meta export)
+  platform String?
+  campaign String?
+  adset    String?
+  ad       String?
+  form     String?
+  inboxUrl String?
+  source   String? // file/feed the lead came from
+
+  // pipeline + tracking
+  status        LeadStatus @default(NEW)
+  priority      Priority   @default(NONE)
+  dealValue     Decimal?   @db.Decimal(12, 2) // shown on Kanban cards, feeds revenue
+  nextFollowup  DateTime?  @db.Date
+  lastContacted DateTime?  @db.Date
+  emailedOn     DateTime?  @db.Date // manual "Emailed on" stand-in for Outlook
+  notes         String?
+
+  // integration links
+  mailerliteSubscriberId String?
+  stripeCustomerId       String?
+
+  // ownership / audit
+  owner     User?    @relation(fields: [ownerId], references: [id])
+  ownerId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities   Activity[]
+  stageHistory StageHistory[]
+  tasks        Task[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([campaign])
+  @@index([status])
+  @@index([nextFollowup])
+}
+
+// Per-lead timeline: calls, emails, notes, status changes, meetings, payments.
+model Activity {
+  id         String       @id @default(cuid())
+  lead       Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId     String
+  user       User?        @relation(fields: [userId], references: [id])
+  userId     String?
+  type       ActivityType
+  body       String?
+  externalId String? // e.g. Outlook message id, Stripe charge id
+  occurredAt DateTime     @default(now())
+
+  @@index([leadId])
+  @@index([occurredAt])
+}
+
+// Powers velocity reporting + Kanban analytics (and a future speed-to-lead metric).
+model StageHistory {
+  id        String      @id @default(cuid())
+  lead      Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  fromStage LeadStatus?
+  toStage   LeadStatus
+  changedAt DateTime    @default(now())
+
+  @@index([leadId])
+}
+
+// Follow-ups → overdue queue + daily call list.
+model Task {
+  id          String    @id @default(cuid())
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId      String
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+  title       String
+  dueDate     DateTime? @db.Date
+  done        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([leadId])
+  @@index([dueDate])
+  @@index([done])
+}
