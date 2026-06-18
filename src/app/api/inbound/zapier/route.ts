@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { ingestRawLead } from "@/lib/ingest";
 import type { RawLead } from "@/lib/normalize";
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   const results = [];
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
-    results.push(await ingestRawLead(row));
+    results.push(await ingestRawLead(prisma, row));
   }
 
   const created = results.filter((r) => r.created).length;
