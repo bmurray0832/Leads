@@ -30,10 +30,15 @@ Duplicates, Tasks/Follow-ups**, with an activity timeline and the manual
 | **Phase 2** — Meta `leadgen` webhook: signature verify, Graph fetch, dedupe upsert, auto task | ✅ |
 | **Phase 3** — MailerLite two-way sync: idempotent subscriber upsert, status→`crm_status`, status push on stage change, inbound unsubscribe webhook | ✅ |
 | **Phase 4** — Stripe webhook → CUSTOMER + deal value + PAYMENT activity; CPL/CAC/ROAS analytics with per-campaign ad spend | ✅ |
+| **Phase 5** — Outlook / Microsoft Graph: send email from a lead record + calendar invites, logged to the timeline (supersedes manual "Emailed on") | ✅ groundwork |
 
-Phase 5 (Outlook) remains deferred. Live integrations stay behind the interim
-Zapier feed until Meta App Review approves the webhook, and all integration
-calls no-op safely until their API keys are set.
+Live integrations stay behind the interim Zapier feed until Meta App Review
+approves the webhook, and every integration no-ops (or hides its UI) until its
+keys are set. Outlook needs an Azure app (Mail.Send, Calendars.ReadWrite) — the
+send-email box only appears on a lead once `MS_*` env vars are configured.
+
+CI (`.github/workflows/ci.yml`) runs the full gate suite — migrate, seed (asserts
+695), typecheck, lint, test, build — against a Postgres service on every push.
 
 ## Local setup
 

@@ -16,9 +16,16 @@ import {
   logEmailedOn,
   addNote,
   createTask,
+  sendEmailToLead,
 } from "@/app/actions";
 
-export default function LeadEditor({ lead }: { lead: LeadDTO }) {
+export default function LeadEditor({
+  lead,
+  outlookEnabled = false,
+}: {
+  lead: LeadDTO;
+  outlookEnabled?: boolean;
+}) {
   const [, startTransition] = useTransition();
   const [note, setNote] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
@@ -26,6 +33,9 @@ export default function LeadEditor({ lead }: { lead: LeadDTO }) {
   const [emailDate, setEmailDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
+  const [subject, setSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
 
   const run = (fn: () => Promise<unknown>) => startTransition(() => void fn());
 
@@ -163,6 +173,51 @@ export default function LeadEditor({ lead }: { lead: LeadDTO }) {
             Emailed on this date
           </button>
         </div>
+
+        {outlookEnabled ? (
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: 8 }}
+          >
+            <div className="subtle">Send email via Outlook</div>
+            <input
+              type="text"
+              placeholder="Subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+            <textarea
+              placeholder="Message…"
+              rows={3}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+            />
+            <div className="toolbar" style={{ margin: 0 }}>
+              <button
+                className="btn"
+                disabled={!emailBody.trim() || !lead.email}
+                onClick={() =>
+                  run(async () => {
+                    setSendMsg(null);
+                    try {
+                      await sendEmailToLead(lead.id, subject, emailBody);
+                      setSubject("");
+                      setEmailBody("");
+                      setSendMsg("Sent ✓");
+                    } catch (err) {
+                      setSendMsg((err as Error).message || "Send failed");
+                    }
+                  })
+                }
+              >
+                Send
+              </button>
+              {!lead.email ? (
+                <span className="subtle">No email on this lead</span>
+              ) : null}
+              {sendMsg ? <span className="subtle">{sendMsg}</span> : null}
+            </div>
+          </div>
+        ) : null}
 
         <div className="toolbar" style={{ margin: 0 }}>
           <input

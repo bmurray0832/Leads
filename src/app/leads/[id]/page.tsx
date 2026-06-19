@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeLead } from "@/lib/serialize";
 import { STATUS_LABEL, type LeadStatus } from "@/lib/status";
+import { outlookConfigured } from "@/lib/outlookSync";
 import LeadEditor from "./LeadEditor";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function LeadDetailPage({
 
       <div className="two-col">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <LeadEditor lead={dto} />
+          <LeadEditor lead={dto} outlookEnabled={outlookConfigured()} />
 
           <div className="panel">
             <div className="column-head">

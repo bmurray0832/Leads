@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureCurrentUserId } from "@/lib/auth";
 import { applyStageChange } from "@/lib/leadOps";
 import { syncLeadToMailerLite } from "@/lib/mailerliteSync";
+import { sendLeadEmail, createLeadMeeting } from "@/lib/outlookSync";
 import type { LeadStatus, Priority } from "@/lib/status";
 
 function parseDate(s?: string | null): Date | null {
@@ -122,6 +123,29 @@ export async function createTask(
   await prisma.task.create({
     data: { leadId, userId, title: text, dueDate: parseDate(dueDate) },
   });
+  revalidateAll(leadId);
+}
+
+// Phase 5: send an email to the lead through Outlook (Microsoft Graph) and log
+// it. Throws if Outlook isn't configured — the UI surfaces the message.
+export async function sendEmailToLead(
+  leadId: string,
+  subject: string,
+  body: string,
+) {
+  const html = body.replace(/\n/g, "<br/>");
+  await sendLeadEmail(leadId, subject.trim() || "(no subject)", html);
+  revalidateAll(leadId);
+}
+
+// Phase 5: create a calendar invite for the lead via Outlook and log it.
+export async function scheduleLeadMeeting(
+  leadId: string,
+  subject: string,
+  startIso: string,
+  endIso: string,
+) {
+  await createLeadMeeting(leadId, subject.trim() || "Meeting", startIso, endIso);
   revalidateAll(leadId);
 }
 
