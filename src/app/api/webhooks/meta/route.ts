@@ -5,6 +5,7 @@ import {
   verifyMetaSignature,
   processLeadgenPayload,
 } from "@/lib/meta";
+import { syncLeadToMailerLite } from "@/lib/mailerliteSync";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,11 @@ export async function POST(req: NextRequest) {
 
   const { results, errors } = await processLeadgenPayload(prisma, payload);
   const created = results.filter((r) => r.created).length;
+
+  // Push brand-new leads to MailerLite (best-effort).
+  for (const r of results) {
+    if (r.created) await syncLeadToMailerLite(r.id);
+  }
 
   // Always 200 so Meta doesn't retry on per-lead errors we've already logged.
   return NextResponse.json({ ok: true, created, processed: results.length, errors });

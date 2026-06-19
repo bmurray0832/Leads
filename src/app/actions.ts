@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensureCurrentUserId } from "@/lib/auth";
 import { applyStageChange } from "@/lib/leadOps";
+import { syncLeadToMailerLite } from "@/lib/mailerliteSync";
 import type { LeadStatus, Priority } from "@/lib/status";
 
 function parseDate(s?: string | null): Date | null {
@@ -27,6 +28,8 @@ export async function changeStage(leadId: string, toStage: LeadStatus) {
   const userId = await ensureCurrentUserId();
   const res = await applyStageChange(prisma, { leadId, toStage, userId });
   revalidateAll(leadId);
+  // Reflect the new status onto the MailerLite subscriber (best-effort).
+  if (res.changed) await syncLeadToMailerLite(leadId);
   return res;
 }
 

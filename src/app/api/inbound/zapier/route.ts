@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ingestRawLead } from "@/lib/ingest";
+import { syncLeadToMailerLite } from "@/lib/mailerliteSync";
 import type { RawLead } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,10 @@ export async function POST(req: NextRequest) {
   const results = [];
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
-    results.push(await ingestRawLead(prisma, row));
+    const res = await ingestRawLead(prisma, row);
+    results.push(res);
+    // Push brand-new leads to MailerLite (best-effort).
+    if (res.created) await syncLeadToMailerLite(res.id);
   }
 
   const created = results.filter((r) => r.created).length;
