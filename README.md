@@ -40,6 +40,10 @@ send-email box only appears on a lead once `MS_*` env vars are configured.
 CI (`.github/workflows/ci.yml`) runs the full gate suite — migrate, seed (asserts
 695), typecheck, lint, test, build — against a Postgres service on every push.
 
+A nightly **backstop** (`GET /api/cron/backstop`, protected by `CRON_SECRET`)
+re-pulls recent Meta leads for `META_FORM_IDS` so nothing is lost if a webhook is
+missed — point a Railway cron service at it.
+
 ## Local setup
 
 ```bash

@@ -145,6 +145,46 @@ export const graphFetchLead: FetchLead = async (leadgenId) => {
   return (await res.json()) as GraphLead;
 };
 
+// ---- Backstop sync (nightly cron) ----
+
+export type FetchFormLeads = (formId: string) => Promise<GraphLead[]>;
+
+// Pulls recent leads for a form from the Graph API (one page).
+export const graphFetchFormLeads: FetchFormLeads = async (formId) => {
+  const token = process.env.META_GRAPH_TOKEN;
+  if (!token) throw new Error("META_GRAPH_TOKEN is not set");
+  const fields = "id,created_time,field_data,platform";
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${formId}/leads?fields=${fields}&limit=100&access_token=${token}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Graph API ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as { data?: GraphLead[] };
+  return json.data ?? [];
+};
+
+// Re-ingests recent leads for the given forms (dedupe makes this safe to run on
+// a schedule). Catches per-form errors so one bad form doesn't stop the rest.
+export async function processFormBackstop(
+  db: IngestDb,
+  formIds: string[],
+  opts: { fetchFormLeads?: FetchFormLeads } = {},
+): Promise<{ results: IngestResult[]; errors: string[] }> {
+  const fetchFormLeads = opts.fetchFormLeads ?? graphFetchFormLeads;
+  const results: IngestResult[] = [];
+  const errors: string[] = [];
+
+  for (const formId of formIds) {
+    try {
+      const leads = await fetchFormLeads(formId);
+      for (const gl of leads) {
+        results.push(await ingestRawLead(db, mapGraphLeadToRaw(gl)));
+      }
+    } catch (e) {
+      errors.push(`${formId}: ${(e as Error).message}`);
+    }
+  }
+  return { results, errors };
+}
+
 // ---- Pipeline ----
 
 // Processes a verified leadgen payload: fetch each lead, map it, ingest it
