@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/funnel", label: "Funnel" },
   { href: "/duplicates", label: "Duplicates" },
   { href: "/tasks", label: "Tasks" },
+  { href: "/analytics", label: "Analytics" },
 ];
 
 export default function Nav() {

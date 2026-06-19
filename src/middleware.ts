@@ -18,5 +18,5 @@ export function middleware(req: NextRequest) {
 // Apply to the app views only — never to /api/auth/* (the login flow itself)
 // or to static assets.
 export const config = {
-  matcher: ["/contacts/:path*", "/kanban/:path*", "/funnel/:path*", "/duplicates/:path*", "/tasks/:path*", "/leads/:path*"],
+  matcher: ["/contacts/:path*", "/kanban/:path*", "/funnel/:path*", "/duplicates/:path*", "/tasks/:path*", "/analytics/:path*", "/leads/:path*"],
 };

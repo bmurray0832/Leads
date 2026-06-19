@@ -23,8 +23,17 @@ Duplicates, Tasks/Follow-ups**, with an activity timeline and the manual
 | Auth0 login gate (middleware) | ✅ |
 | Interim Zapier inbound endpoint + new-lead automation (auto follow-up task) | ✅ |
 
-Phases 2–5 (Meta direct, MailerLite, Stripe, Outlook) are scaffolded by the
-schema/enums but not implemented yet.
+### Phases 2–4 (also built)
+
+| Area | Status |
+|---|---|
+| **Phase 2** — Meta `leadgen` webhook: signature verify, Graph fetch, dedupe upsert, auto task | ✅ |
+| **Phase 3** — MailerLite two-way sync: idempotent subscriber upsert, status→`crm_status`, status push on stage change, inbound unsubscribe webhook | ✅ |
+| **Phase 4** — Stripe webhook → CUSTOMER + deal value + PAYMENT activity; CPL/CAC/ROAS analytics with per-campaign ad spend | ✅ |
+
+Phase 5 (Outlook) remains deferred. Live integrations stay behind the interim
+Zapier feed until Meta App Review approves the webhook, and all integration
+calls no-op safely until their API keys are set.
 
 ## Local setup
 

@@ -142,6 +142,16 @@ model StageHistory {
   @@index([leadId])
 }
 
+// Per-campaign ad spend (Phase 4). Manually maintained for now; Phase 4's
+// analytics join this against leads/customers for CPL / CAC / ROAS. Later this
+// can be backfilled from the Meta Ads Insights API.
+model CampaignSpend {
+  id        String   @id @default(cuid())
+  campaign  String   @unique
+  spend     Decimal  @default(0) @db.Decimal(12, 2)
+  updatedAt DateTime @updatedAt
+}
+
 // Follow-ups → overdue queue + daily call list.
 model Task {
   id          String    @id @default(cuid())

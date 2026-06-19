@@ -19,7 +19,19 @@ function revalidateAll(leadId?: string) {
   revalidatePath("/funnel");
   revalidatePath("/duplicates");
   revalidatePath("/tasks");
+  revalidatePath("/analytics");
   if (leadId) revalidatePath(`/leads/${leadId}`);
+}
+
+// Phase 4: set/replace the recorded ad spend for a campaign (feeds CPL/CAC/ROAS).
+export async function setCampaignSpend(campaign: string, spend: number) {
+  const value = Number.isFinite(spend) && spend >= 0 ? spend : 0;
+  await prisma.campaignSpend.upsert({
+    where: { campaign },
+    update: { spend: value },
+    create: { campaign, spend: value },
+  });
+  revalidatePath("/analytics");
 }
 
 // Stage change — used by both the Kanban drag and the Contacts status dropdown.
