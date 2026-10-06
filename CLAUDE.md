@@ -42,6 +42,13 @@ Local dev uses `.env` with `AUTH_DISABLED=true` and a local Postgres. Never set
 - **Best-effort vs. user-initiated:** MailerLite sync is best-effort (logs,
   never throws). Outlook send is user-initiated (surfaces errors).
 - Integrations **no-op when their env vars are unset** — keep that property.
+- **Auth:** Leads shares the Holy Insights Auth0 tenant, so login alone proves
+  nothing — access is an allowlist (`ALLOWED_EMAILS` verified-only,
+  `ALLOWED_AUTH0_SUBS`) that fails closed (`src/lib/gate.ts`). The middleware
+  decrypts the session (never trust cookie presence) and gates every path
+  except the explicit public list in its matcher. **Every server action must
+  call `ensureCurrentUserId()` first** — actions are callable from any URL, so
+  the middleware does not protect them.
 
 ## Testing
 

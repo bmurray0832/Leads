@@ -1,22 +1,41 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { gateDecision } from "@/lib/gate";
+import { getSession } from "@auth0/nextjs-auth0/edge";
+import { allowlistFromEnv, gateDecision, isAllowedUser } from "@/lib/gate";
 
-// Protects the app views. Unauthenticated requests are redirected to the Auth0
-// login route. The @auth0/nextjs-auth0 session lives in the "appSession" cookie.
-export function middleware(req: NextRequest) {
+// Protects every page except the public ones listed in `config.matcher`.
+// The Auth0 session cookie is decrypted and validated here — a cookie merely
+// being present is not enough — and the user must be on the allowlist.
+export async function middleware(req: NextRequest) {
   const authDisabled = process.env.AUTH_DISABLED === "true";
-  const hasSession = req.cookies.has("appSession");
+  if (authDisabled) return NextResponse.next();
 
-  if (gateDecision({ authDisabled, hasSession }) === "login") {
+  const res = NextResponse.next();
+  const session = await getSession(req, res).catch(() => null);
+  const user = session?.user;
+
+  const decision = gateDecision({
+    authDisabled,
+    hasSession: Boolean(user?.sub),
+    allowed: user ? isAllowedUser(user, allowlistFromEnv()) : false,
+  });
+
+  if (decision === "login") {
     const loginUrl = new URL("/api/auth/login", req.url);
     loginUrl.searchParams.set("returnTo", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
-  return NextResponse.next();
+  if (decision === "forbidden") {
+    return NextResponse.redirect(new URL("/forbidden", req.url));
+  }
+  return res;
 }
 
-// Apply to the app views only — never to /api/auth/* (the login flow itself)
-// or to static assets.
+// Everything is gated except: the landing page (`/`, excluded because the
+// pattern needs at least one character after the slash), the Auth0 routes,
+// the forbidden page, the health check, secret-protected integration
+// endpoints, and static assets. New pages are protected by default.
 export const config = {
-  matcher: ["/contacts/:path*", "/kanban/:path*", "/funnel/:path*", "/duplicates/:path*", "/tasks/:path*", "/analytics/:path*", "/leads/:path*"],
+  matcher: [
+    "/((?!api/auth|api/health|api/webhooks|api/inbound|api/cron|forbidden|_next/static|_next/image|favicon\\.ico).+)",
+  ],
 };

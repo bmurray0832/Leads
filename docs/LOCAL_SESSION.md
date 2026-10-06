@@ -18,15 +18,31 @@ into a local Claude Code session, or follow the steps yourself.
 
 ## 1. Finish the production Auth0 fix (do this first)
 
-1. Auth0 → Applications → your Leads app → **Settings**: copy **Client Secret**;
-   confirm **Domain** matches `AUTH0_ISSUER_BASE_URL` (as `https://<domain>`) and
-   **Client ID** matches `AUTH0_CLIENT_ID`.
-2. Auth0 → same app → **Allowed Web Origins**: add
-   `https://leads-production-9c52.up.railway.app`.
-3. Railway → `Leads` → **Variables**: add `AUTH0_CLIENT_SECRET`, then **delete**
-   `AUTH_DISABLED` (or set it to `false`). Railway redeploys on save.
-4. Open the URL → **Log in** → you should land on `/contacts`.
-5. If `/contacts` is empty, seed (step 3 below).
+Leads signs in through the **Holy Insights Auth0 tenant**, so you use your Holy
+Insights superadmin login (`braden@holyinsights.org`). Only allowlisted
+identities get in — other Holy Insights users in the tenant land on `/forbidden`.
+
+1. Auth0 → switch to the **Holy Insights tenant** → Applications → **Create
+   Application** → *Regular Web App* named "Leads CRM".
+   - Allowed Callback URLs: `https://leads-production-9c52.up.railway.app/api/auth/callback`
+     and `http://localhost:3000/api/auth/callback`
+   - Allowed Logout URLs: `https://leads-production-9c52.up.railway.app`,
+     `http://localhost:3000`
+   - Allowed Web Origins: `https://leads-production-9c52.up.railway.app`,
+     `http://localhost:3000`
+   - **Connections** tab: enable the database connection Holy Insights uses
+     (usually `Username-Password-Authentication`).
+   - Copy its **Domain**, **Client ID**, **Client Secret**.
+2. Railway → `Leads` → **Variables**:
+   - `AUTH0_ISSUER_BASE_URL` = `https://<Holy Insights tenant domain>`
+   - `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` = from the new app
+   - `ALLOWED_EMAILS` = `braden@holyinsights.org`
+   - **Delete** `AUTH_DISABLED`. Railway redeploys on save.
+3. Open the URL → **Log in** with your Holy Insights credentials → you should
+   land on `/contacts`.
+   - If you land on `/forbidden` instead, Auth0 hasn't marked your email
+     verified. Copy the **Auth0 id** that page shows into `ALLOWED_AUTH0_SUBS`.
+4. If `/contacts` is empty, seed (step 3 below).
 
 ## 2. Run the CRM on your machine (optional, for testing)
 
@@ -46,9 +62,10 @@ Edit `.env`:
 DATABASE_URL="postgresql://leads:leads@localhost:5432/leads_crm?schema=public"
 AUTH0_SECRET="<openssl rand -hex 32>"
 AUTH0_BASE_URL="http://localhost:3000"
-AUTH0_ISSUER_BASE_URL="https://<your-tenant>.us.auth0.com"
-AUTH0_CLIENT_ID="<from Auth0>"
-AUTH0_CLIENT_SECRET="<from Auth0>"
+AUTH0_ISSUER_BASE_URL="https://<Holy Insights tenant domain>"
+AUTH0_CLIENT_ID="<from the Leads CRM Auth0 app>"
+AUTH0_CLIENT_SECRET="<from the Leads CRM Auth0 app>"
+ALLOWED_EMAILS="braden@holyinsights.org"
 # Leave AUTH_DISABLED out to test real login.
 # Set AUTH_DISABLED="true" only to click around without Auth0.
 ```
@@ -83,8 +100,9 @@ The seed upserts by id, so re-running it never duplicates or overwrites edits.
 > I'm continuing work on my Leads CRM (repo `bmurray0832/Leads`, branch `main`
 > only). Read `CLAUDE.md` and `docs/LOCAL_SESSION.md`. It's live at
 > https://leads-production-9c52.up.railway.app on Railway (project
-> `alluring-blessing`, service `Leads`). Production is missing
-> `AUTH0_CLIENT_SECRET` and has `AUTH_DISABLED` set. Help me add the client
-> secret, remove `AUTH_DISABLED`, confirm login works, and seed the 695 leads
-> into production if they're not there. Then get my local dev environment
-> running.
+> `alluring-blessing`, service `Leads`). Login should go through my Holy
+> Insights Auth0 tenant, restricted by `ALLOWED_EMAILS` to my superadmin
+> account. Production is missing `AUTH0_CLIENT_SECRET` and has `AUTH_DISABLED`
+> set. Help me finish section 1 of docs/LOCAL_SESSION.md, confirm login works,
+> and seed the 695 leads into production if they're not there. Then get my
+> local dev environment running.

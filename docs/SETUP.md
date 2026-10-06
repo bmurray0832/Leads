@@ -11,11 +11,15 @@ Legend: 👤 = you (account-level) · 🤖 = Claude can wire/verify once you pro
 ## Stage 0 — Deploy the core app  ⏱ ~1 hr · gets you a hosted, login-gated CRM
 
 - [ ] 👤 **Railway project**: create project → add **Postgres** plugin.
-- [ ] 👤 Add this repo as a Railway service (deploys from `claude/keen-dirac-pa4c1y`,
-      or `main` once merged). `railway.json` runs `prisma migrate deploy` on deploy.
-- [ ] 👤 **Auth0**: create a *Regular Web App*.
+- [ ] 👤 Add this repo as a Railway service deploying from `main`.
+      `railway.json` runs `prisma migrate deploy` on deploy.
+- [ ] 👤 **Auth0** — in the **Holy Insights tenant** (so you sign in with your Holy
+      Insights superadmin account), create a separate *Regular Web App* for Leads.
   - [ ] Allowed Callback URL: `https://<railway-domain>/api/auth/callback`
   - [ ] Allowed Logout URL: `https://<railway-domain>`
+  - [ ] Allowed Web Origins: `https://<railway-domain>`
+  - [ ] **Connections** tab: enable the same database connection Holy Insights uses
+        (its `AUTH0_DB_CONNECTION`, usually `Username-Password-Authentication`).
   - [ ] Copy Domain, Client ID, Client Secret.
 - [ ] 👤 Set Railway env vars:
   - [ ] `DATABASE_URL` (auto-provided by the Postgres plugin)
@@ -23,6 +27,10 @@ Legend: 👤 = you (account-level) · 🤖 = Claude can wire/verify once you pro
   - [ ] `AUTH0_BASE_URL` = `https://<railway-domain>`
   - [ ] `AUTH0_ISSUER_BASE_URL` = `https://<tenant>.us.auth0.com`
   - [ ] `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`
+  - [ ] `ALLOWED_EMAILS` = `braden@holyinsights.org` (and/or `ALLOWED_AUTH0_SUBS`).
+        The tenant holds every Holy Insights user, so this list decides who gets in;
+        empty means nobody. Emails count only if verified in Auth0 — if you land on
+        `/forbidden`, copy the Auth0 id it shows into `ALLOWED_AUTH0_SUBS`.
   - [ ] **Do NOT set `AUTH_DISABLED`** (it must be off in production)
 - [ ] 👤 Deploy. Then seed the 695 leads once from your machine, using the Postgres
       service's **public** URL (Railway → Postgres → Variables → `DATABASE_PUBLIC_URL`):
@@ -101,7 +109,7 @@ Legend: 👤 = you (account-level) · 🤖 = Claude can wire/verify once you pro
 
 | Feature | Required env vars |
 |---|---|
-| Login | `AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` |
+| Login | `AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `ALLOWED_EMAILS` / `ALLOWED_AUTH0_SUBS` |
 | Zapier feed | `ZAPIER_INBOUND_SECRET` |
 | Meta webhook | `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_GRAPH_TOKEN` |
 | Backstop cron | `CRON_SECRET`, `META_FORM_IDS`, `META_GRAPH_TOKEN` |

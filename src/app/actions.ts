@@ -26,6 +26,7 @@ function revalidateAll(leadId?: string) {
 
 // Phase 4: set/replace the recorded ad spend for a campaign (feeds CPL/CAC/ROAS).
 export async function setCampaignSpend(campaign: string, spend: number) {
+  await ensureCurrentUserId();
   const value = Number.isFinite(spend) && spend >= 0 ? spend : 0;
   await prisma.campaignSpend.upsert({
     where: { campaign },
@@ -60,6 +61,7 @@ export interface LeadPatch {
 }
 
 export async function updateLead(leadId: string, patch: LeadPatch) {
+  await ensureCurrentUserId();
   await prisma.lead.update({
     where: { id: leadId },
     data: {
@@ -133,6 +135,7 @@ export async function sendEmailToLead(
   subject: string,
   body: string,
 ) {
+  await ensureCurrentUserId();
   const html = body.replace(/\n/g, "<br/>");
   await sendLeadEmail(leadId, subject.trim() || "(no subject)", html);
   revalidateAll(leadId);
@@ -145,11 +148,13 @@ export async function scheduleLeadMeeting(
   startIso: string,
   endIso: string,
 ) {
+  await ensureCurrentUserId();
   await createLeadMeeting(leadId, subject.trim() || "Meeting", startIso, endIso);
   revalidateAll(leadId);
 }
 
 export async function toggleTask(taskId: string, done: boolean) {
+  await ensureCurrentUserId();
   await prisma.task.update({
     where: { id: taskId },
     data: { done, completedAt: done ? new Date() : null },
@@ -160,6 +165,7 @@ export async function toggleTask(taskId: string, done: boolean) {
 // Merge a duplicate into a primary: move activities/tasks/history over, copy any
 // fields the primary is missing, then delete the duplicate.
 export async function mergeLeads(primaryId: string, duplicateId: string) {
+  await ensureCurrentUserId();
   if (primaryId === duplicateId) return;
   await prisma.$transaction(async (tx) => {
     const dup = await tx.lead.findUnique({ where: { id: duplicateId } });

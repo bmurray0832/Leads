@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthState, type AuthState } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// Public landing page. Authenticated visitors are sent straight to the CRM;
-// everyone else gets a page that actually renders (instead of bouncing into the
-// auth-gated app) with a login button.
+// Public landing page. Allowlisted visitors are sent straight to the CRM,
+// signed-in but non-allowlisted ones to /forbidden; everyone else gets a page
+// that actually renders with a login button.
 export default async function Home() {
-  let user = null;
+  let state: AuthState = { kind: "anonymous" };
   try {
-    user = await getCurrentUser();
+    state = await getAuthState();
   } catch {
     // Auth not configured yet — fall through to the public landing page.
   }
-  if (user) redirect("/contacts");
+  if (state.kind === "allowed") redirect("/contacts");
+  if (state.kind === "forbidden") redirect("/forbidden");
 
   return (
     <div
