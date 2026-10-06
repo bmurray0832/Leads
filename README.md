@@ -80,8 +80,11 @@ shared-phone groups.
    `ZAPIER_INBOUND_SECRET`. Leave `AUTH_DISABLED` unset (defaults off).
 4. Auth0: Regular Web App → Allowed Callback `https://<domain>/api/auth/callback`,
    Logout `https://<domain>`.
-5. After first deploy, seed once: `railway run npm run seed` (or run the seed
-   against the Railway `DATABASE_URL`).
+5. After first deploy, seed once from your machine against the Postgres
+   service's **public** URL (Railway → Postgres → Variables →
+   `DATABASE_PUBLIC_URL`): `DATABASE_URL="<DATABASE_PUBLIC_URL>" npm run seed`.
+   (`railway run` injects the private `postgres.railway.internal` URL, which
+   isn't reachable from outside Railway.)
 
 ## Interim Zapier feed
 

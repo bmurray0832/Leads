@@ -24,7 +24,10 @@ Legend: 👤 = you (account-level) · 🤖 = Claude can wire/verify once you pro
   - [ ] `AUTH0_ISSUER_BASE_URL` = `https://<tenant>.us.auth0.com`
   - [ ] `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`
   - [ ] **Do NOT set `AUTH_DISABLED`** (it must be off in production)
-- [ ] 👤 Deploy. Then seed the 695 leads once: `railway run npm run seed`.
+- [ ] 👤 Deploy. Then seed the 695 leads once from your machine, using the Postgres
+      service's **public** URL (Railway → Postgres → Variables → `DATABASE_PUBLIC_URL`):
+      `DATABASE_URL="<DATABASE_PUBLIC_URL>" npm run seed`. (`railway run` injects the
+      private `postgres.railway.internal` URL, which isn't reachable from your laptop.)
 - [ ] ✅ Visit the domain → log in → Contacts + Kanban load with your leads.
 
 ## Stage 1 — Automatic lead capture (interim Zapier)  ⏱ ~20 min · leads flow in now
@@ -89,7 +92,7 @@ Legend: 👤 = you (account-level) · 🤖 = Claude can wire/verify once you pro
 
 - [ ] 👤 Create a `main` branch (or merge this one) so 🤖 can open a **PR** for review.
 - [ ] 👤/🤖 Decide **PII-in-git**: keep `data/leads.json` committed, or remove it and
-      seed only via `railway run npm run seed`.
+      seed only from your machine against `DATABASE_PUBLIC_URL` (see Stage 0).
 - [ ] 👤 Confirm Railway daily **backups** are on (you're storing PII).
 - [ ] ✅ CI (`.github/workflows/ci.yml`) runs migrate + seed + typecheck + lint + test
       + build on every push.
